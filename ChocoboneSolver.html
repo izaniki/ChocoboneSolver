@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chocobo Instant Dashboard</title>
+    <style>
+        body { 
+            font-family: 'Segoe UI', Tahoma, sans-serif; 
+            background: #1e1e24; 
+            color: #f5f5f5; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            padding: 20px; 
+            margin: 0;
+        }
+        h1 { margin-top: 0; margin-bottom: 10px; font-size: 24px; }
+        
+        /* Sticky Header */
+        .controls-wrapper {
+            position: sticky;
+            top: 0;
+            background: rgba(30, 30, 36, 0.95);
+            padding: 15px;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            border-bottom: 2px solid #4a4ae6;
+            z-index: 100;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            gap: 30px;
+        }
+        .controls { display: flex; gap: 15px; align-items: center; font-size: 18px; font-weight: bold; }
+        select { 
+            padding: 8px 15px; 
+            font-size: 18px; 
+            font-weight: bold;
+            border-radius: 6px; 
+            border: 2px solid #5c5cff; 
+            cursor: pointer; 
+            background: #2b2b36; 
+            color: #fff; 
+        }
+
+        /* Map Dashboard Layout */
+        .dashboard {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            width: 100%;
+            max-width: 800px;
+        }
+
+        .map-card {
+            background: #2b2b36;
+            border-radius: 8px;
+            padding: 10px 15px;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            gap: 20px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            border-left: 8px solid; 
+        }
+
+        /* Miniature Visual Grid */
+        .grid-container { flex-shrink: 0; }
+        .grid { 
+            display: grid; 
+            grid-template-columns: repeat(6, 25px); 
+            gap: 2px; 
+            background: #111;
+            padding: 2px;
+            border-radius: 4px;
+        }
+        .cell { 
+            width: 25px; 
+            height: 25px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            font-size: 14px; 
+            font-weight: bold; 
+            border-radius: 2px;
+            user-select: none;
+        }
+        .cell.O { background-color: #4caf50; color: white; }
+        .cell.X { background-color: #f44336; color: rgba(255,255,255,0.8); }
+        .interactive .cell { cursor: pointer; transition: transform 0.1s; }
+        .interactive .cell:hover { transform: scale(1.1); }
+
+        /* Advice Text */
+        .advice-panel {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .rush { color: #4caf50; font-size: 22px; font-weight: bold; margin-bottom: 5px; text-shadow: 1px 1px 2px #000;}
+        .wait { color: #ffeb3b; font-size: 22px; font-weight: bold; margin-bottom: 5px; text-shadow: 1px 1px 2px #000;}
+        .rush-med { color: #ff9800; font-size: 20px; font-weight: bold; margin-bottom: 5px;}
+        .counter-table { 
+            display: grid; 
+            grid-template-columns: repeat(3, 1fr); 
+            gap: 10px; 
+            font-family: monospace; 
+            font-size: 14px;
+            background: #1e1e24;
+            padding: 8px;
+            border-radius: 4px;
+        }
+        .counter-item { background: #3a3a48; padding: 4px 8px; border-radius: 4px; text-align: center; }
+        .win { color: #4caf50; }
+        .tie { color: #ffeb3b; }
+        .lose { color: #f44336; }
+
+        /* Custom Builder Section */
+        .custom-builder-container {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 2px dashed #444;
+            width: 100%;
+            max-width: 800px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: #22222b;
+            border-radius: 12px;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .custom-builder-container h2 { margin-top: 0; color: #81ecec; }
+        .builder-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            width: 100%;
+            justify-content: center;
+        }
+        .builder-controls input[type="text"] {
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #555;
+            background: #1e1e24;
+            color: #fff;
+        }
+        .builder-controls input[type="color"] {
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            height: 35px;
+            width: 35px;
+        }
+        .btn {
+            padding: 8px 15px;
+            border: none;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+            background: #5c5cff;
+            color: white;
+        }
+        .btn:hover { background: #4a4ae6; }
+        .btn-danger { background: #d63031; padding: 8px 12px; font-size: 14px;}
+        .btn-danger:hover { background: #b83232; }
+
+    </style>
+</head>
+<body>
+
+    <div class="controls-wrapper">
+        <div class="controls">
+            <label>My Target Goal is:</label>
+            <select id="targetGoal" onchange="updateAll()">
+                <option value="0">Row 1 (Top)</option>
+                <option value="1">Row 2 (Middle)</option>
+                <option value="2">Row 3 (Bottom)</option>
+            </select>
+        </div>
+        <button class="btn btn-danger" onclick="resetDefaults()">Reset Saved Layouts</button>
+    </div>
+
+    <div id="dashboard" class="dashboard"></div>
+
+    <div class="custom-builder-container">
+        <h2>🛠️ Custom Layout Builder</h2>
+        <p style="color: #aaa; margin-top: 0;">Click the grid squares to toggle O and X. The solution will calculate automatically.</p>
+        
+        <div class="builder-controls">
+            <input type="color" id="customColor" value="#fd79a8" title="Pick a color for the sidebar">
+            <button class="btn" onclick="saveCustomMap()">💾 Save to Dashboard</button>
+        </div>
+
+        <div class="map-card interactive" style="border-left-color: #fd79a8; width: 100%; box-sizing: border-box;" id="customCardColor">
+            <div class="grid-container" id="customGridElement"></div>
+            <div class="advice-panel" id="customAdvice"></div>
+        </div>
+    </div>
+
+    <script>
+        // The default maps (Now with Cyan!)
+        const defaultMaps = [
+            { id: "Red", color: "#ff7675", data: "XOOXXO" + "OOOOOO" + "OXXOOX" },
+            { id: "Yellow", color: "#ffeaa7", data: "XOOXOX" + "OOOOOO" + "OXXOXO" },
+            { id: "Purple", color: "#a29bfe", data: "OXXOXO" + "OOOOOO" + "XOOXOX" },
+            { id: "Green", color: "#55efc4", data: "OXXOOX" + "OOOOOO" + "XOOXXO" },
+            { id: "Blue", color: "#74b9ff", data: "XOXOOX" + "OOOOOO" + "OXOXXO" },
+            { id: "Orange", color: "#fab1a0", data: "OXOXXO" + "OOOOOO" + "XOXOOX" },
+            { id: "Grey", color: "#dfe6e9", data: "OXOXOX" + "OOOOOO" + "XOXOXO" },
+            { id: "Cyan", color: "#00cec9", data: "XOXOXO" + "OOOOOO" + "OXOXOX" }
+        ];
+
+        // Load map list from LocalStorage, or fallback to defaults
+        let mapList = JSON.parse(localStorage.getItem('chocoMaps')) || [...defaultMaps];
+
+        // Custom Grid State
+        let customGridData = Array(18).fill('O');
+
+        // Link color picker to card border preview
+        document.getElementById('customColor').addEventListener('input', function(e) {
+            document.getElementById('customCardColor').style.borderLeftColor = e.target.value;
+        });
+
+        // The physics simulator
+        function simulate(gridArr, pStartRow, rStartRow) {
+            let pRow = pStartRow; let rRow = rStartRow;
+            let pDelay = 0; let rDelay = 0;
+            for (let c = 0; c < 6; c++) {
+                let isTop = (gridArr[c] === 'O' && gridArr[c+6] === 'O');
+                let isBot = (gridArr[c+6] === 'O' && gridArr[c+12] === 'O');
+                let pWants = (isTop && (pRow === 0 || pRow === 1)) || (isBot && (pRow === 1 || pRow === 2));
+                let rWants = (isTop && (rRow === 0 || rRow === 1)) || (isBot && (rRow === 1 || rRow === 2));
+                if (pWants && rWants && pRow !== rRow) {
+                    let pArrive = c + pDelay; let rArrive = c + rDelay;
+                    if (pArrive === rArrive) { pDelay++; rDelay++; } // Bounce
+                    else { // Pass
+                        pRow = isTop ? (pRow === 0 ? 1 : 0) : (pRow === 1 ? 2 : 1);
+                        rRow = isTop ? (rRow === 0 ? 1 : 0) : (rRow === 1 ? 2 : 1);
+                        pDelay++; rDelay++;
+                    }
+                } else {
+                    if (pWants) { pRow = isTop ? (pRow === 0 ? 1 : 0) : (pRow === 1 ? 2 : 1); pDelay++; }
+                    if (rWants) { rRow = isTop ? (rRow === 0 ? 1 : 0) : (rRow === 1 ? 2 : 1); rDelay++; }
+                }
+            }
+            return { pEnd: pRow, rEnd: rRow };
+        }
+
+        function getScore(pEnd, rEnd, target) {
+            if (pEnd === target) return 1.0; 
+            if (rEnd !== target) return 0.5; // Tie
+            return 0.0; 
+        }
+
+        function analyze(mapData, target) {
+            let gridArr = mapData.split('');
+            let outcomes = [];
+            for(let p=0; p<3; p++) {
+                for(let r=0; r<3; r++) {
+                    if(p === r) continue;
+                    let res = simulate(gridArr, p, r);
+                    outcomes.push({ pStart: p, rStart: r, score: getScore(res.pEnd, res.rEnd, target) });
+                }
+            }
+
+            // Calc Rush
+            let rushEVs = {0:0, 1:0, 2:0}; let count = {0:0, 1:0, 2:0};
+            outcomes.forEach(o => { rushEVs[o.pStart] += o.score; count[o.pStart]++; });
+            let bestRushEV = -1; let bestRushLane = -1;
+            for(let i=0; i<3; i++) {
+                rushEVs[i] /= count[i];
+                if(rushEVs[i] > bestRushEV) { bestRushEV = rushEVs[i]; bestRushLane = i; }
+            }
+
+            // Calc Wait
+            let waitTotalEV = 0; let waitAdvice = [];
+            for(let r=0; r<3; r++) {
+                let bestP = -1; let bestS = -1;
+                outcomes.filter(o => o.rStart === r).forEach(o => {
+                    if(o.score > bestS) { bestS = o.score; bestP = o.pStart; }
+                });
+                waitTotalEV += (bestS / 3);
+                let resultClass = bestS === 1.0 ? 'win' : (bestS === 0.5 ? 'tie' : 'lose');
+                waitAdvice.push(`<div class="counter-item">Rival ${r+1} ➔ Pick <b class="${resultClass}">${bestP+1}</b></div>`);
+            }
+
+            // Build Output HTML
+            let html = '';
+            if (bestRushEV === 1.0) {
+                html += `<div class="rush">🚨 RUSH ROW ${bestRushLane + 1}</div>`;
+                html += `<div style="color:#aaa;">You will win 100% of the time.</div>`;
+            } else if (waitTotalEV > bestRushEV) {
+                html += `<div class="wait">⏳ WAIT & COUNTER</div>`;
+                html += `<div class="counter-table">${waitAdvice.join('')}</div>`;
+            } else {
+                html += `<div class="rush-med">🤔 RUSH ROW ${bestRushLane + 1} (${Math.round(bestRushEV*100)}% Win)</div>`;
+                html += `<div style="color:#aaa;">Highest immediate odds.</div>`;
+            }
+            return html;
+        }
+
+        function createStaticGridHTML(mapData) {
+            let html = '<div class="grid">';
+            for(let char of mapData) { html += `<div class="cell ${char}">${char}</div>`; }
+            return html + '</div>';
+        }
+
+        // --- Custom Builder Logic ---
+        function renderCustomBuilder() {
+            const container = document.getElementById('customGridElement');
+            let html = '<div class="grid">';
+            customGridData.forEach((char, index) => {
+                html += `<div class="cell ${char}" onclick="toggleCustomCell(${index})">${char}</div>`;
+            });
+            html += '</div>';
+            container.innerHTML = html;
+            
+            const target = parseInt(document.getElementById('targetGoal').value);
+            document.getElementById('customAdvice').innerHTML = analyze(customGridData.join(''), target);
+        }
+
+        function toggleCustomCell(index) {
+            customGridData[index] = customGridData[index] === 'O' ? 'X' : 'O';
+            renderCustomBuilder();
+        }
+
+        function saveCustomMap() {
+            const color = document.getElementById('customColor').value;
+            const dataStr = customGridData.join('');
+            
+            // Check if map already exists
+            if (mapList.some(m => m.data === dataStr)) {
+                alert("This layout already exists in your list!");
+                return;
+            }
+
+            mapList.push({ id: `Custom-${mapList.length + 1}`, color: color, data: dataStr });
+            localStorage.setItem('chocoMaps', JSON.stringify(mapList));
+            updateAll(); // Refresh main dashboard
+        }
+
+        function resetDefaults() {
+            if (confirm("Are you sure you want to delete all your custom layouts and return to the default 8?")) {
+                localStorage.removeItem('chocoMaps');
+                mapList = [...defaultMaps];
+                updateAll();
+            }
+        }
+
+        // --- Main Render ---
+        function renderDashboard() {
+            const target = parseInt(document.getElementById('targetGoal').value);
+            const dashboard = document.getElementById('dashboard');
+            dashboard.innerHTML = '';
+
+            mapList.forEach(map => {
+                const card = document.createElement('div');
+                card.className = 'map-card';
+                card.style.borderLeftColor = map.color;
+                
+                card.innerHTML = `
+                    <div class="grid-container">
+                        ${createStaticGridHTML(map.data)}
+                    </div>
+                    <div class="advice-panel">
+                        ${analyze(map.data, target)}
+                    </div>
+                `;
+                dashboard.appendChild(card);
+            });
+        }
+
+        function updateAll() {
+            renderDashboard();
+            renderCustomBuilder();
+        }
+
+        // Init on load
+        updateAll();
+    </script>
+</body>
+</html>
