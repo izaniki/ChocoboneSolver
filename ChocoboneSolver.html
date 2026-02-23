@@ -20,7 +20,7 @@
             margin: 0;
         }
         
-        /* New Title Header */
+        /* Title Header */
         .header-title {
             display: flex;
             align-items: center;
@@ -68,13 +68,13 @@
             font-family: 'Press Start 2P', cursive;
             font-size: 10px;
             color: #aaa;
-            margin-top: 4px; /* Align visually with the chunky dropdown */
+            margin-top: 4px; 
         }
         select { 
             font-family: 'VT323', monospace;
             padding: 4px 12px; 
             font-size: 22px; 
-            border-radius: 0px; /* Squarer retro look */
+            border-radius: 0px; 
             border: 4px solid #5c5cff; 
             cursor: pointer; 
             background: #2b2b36; 
@@ -119,12 +119,12 @@
             display: flex; 
             align-items: center; 
             justify-content: center; 
-            font-size: 22px; 
+            font-size: 18px; 
             border-radius: 0px;
             user-select: none;
         }
         .cell.O { background-color: #4caf50; color: white; }
-        .cell.X { background-color: #f44336; color: rgba(255,255,255,0.8); }
+        .cell.X { background-color: #f44336; color: rgba(255,255,255,0.8); font-size: 22px; }
         .interactive .cell { cursor: pointer; transition: transform 0.1s; }
         .interactive .cell:hover { transform: scale(1.1); background-color: #fff; color: #000; }
 
@@ -237,7 +237,7 @@
 
     <div class="custom-builder-container">
         <h2>BUILD CUSTOM LAYOUT</h2>
-        <p style="color: #aaa; margin-top: 0; font-size: 20px;">Click the grid squares to toggle O and X. Solution is automatic.</p>
+        <p style="color: #aaa; margin-top: 0; font-size: 20px;">Click the grid squares to toggle 🌿 and X. Solution is automatic.</p>
         
         <div class="builder-controls">
             <input type="color" id="customColor" value="#fd79a8" title="Pick a color for the sidebar">
@@ -364,7 +364,10 @@
 
         function createStaticGridHTML(mapData) {
             let html = '<div class="grid">';
-            for(let char of mapData) { html += `<div class="cell ${char}">${char}</div>`; }
+            for(let char of mapData) { 
+                let displayChar = char === 'O' ? '🌿' : 'X';
+                html += `<div class="cell ${char}">${displayChar}</div>`; 
+            }
             return html + '</div>';
         }
 
@@ -372,7 +375,8 @@
             const container = document.getElementById('customGridElement');
             let html = '<div class="grid">';
             customGridData.forEach((char, index) => {
-                html += `<div class="cell ${char}" onclick="toggleCustomCell(${index})">${char}</div>`;
+                let displayChar = char === 'O' ? '🌿' : 'X';
+                html += `<div class="cell ${char}" onclick="toggleCustomCell(${index})">${displayChar}</div>`;
             });
             html += '</div>';
             container.innerHTML = html;
