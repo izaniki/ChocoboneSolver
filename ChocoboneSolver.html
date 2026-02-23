@@ -26,16 +26,27 @@
             width: 100%;
             display: flex;
             justify-content: center;
+            align-items: center;
             border-bottom: 2px solid #4a4ae6;
             z-index: 100;
             margin-bottom: 20px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-            gap: 30px;
+            gap: 20px;
+            flex-wrap: wrap;
         }
-        .controls { display: flex; gap: 15px; align-items: center; font-size: 18px; font-weight: bold; }
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .control-group label {
+            font-size: 16px;
+            font-weight: bold;
+            color: #aaa;
+        }
         select { 
-            padding: 8px 15px; 
-            font-size: 18px; 
+            padding: 8px 12px; 
+            font-size: 16px; 
             font-weight: bold;
             border-radius: 6px; 
             border: 2px solid #5c5cff; 
@@ -139,13 +150,6 @@
             width: 100%;
             justify-content: center;
         }
-        .builder-controls input[type="text"] {
-            padding: 8px;
-            border-radius: 4px;
-            border: 1px solid #555;
-            background: #1e1e24;
-            color: #fff;
-        }
         .builder-controls input[type="color"] {
             border: none;
             background: transparent;
@@ -171,15 +175,26 @@
 <body>
 
     <div class="controls-wrapper">
-        <div class="controls">
-            <label>My Target Goal is:</label>
+        <div class="control-group">
+            <label>My Target Goal:</label>
             <select id="targetGoal" onchange="updateAll()">
                 <option value="0">Row 1 (Top)</option>
-                <option value="1">Row 2 (Middle)</option>
-                <option value="2">Row 3 (Bottom)</option>
+                <option value="1">Row 2 (Mid)</option>
+                <option value="2">Row 3 (Bot)</option>
             </select>
         </div>
-        <button class="btn btn-danger" onclick="resetDefaults()">Reset Saved Layouts</button>
+        
+        <div class="control-group">
+            <label>Rival Picked:</label>
+            <select id="rivalStart" onchange="updateAll()">
+                <option value="-1">None (I pick first)</option>
+                <option value="0">Row 1 (Top)</option>
+                <option value="1">Row 2 (Mid)</option>
+                <option value="2">Row 3 (Bot)</option>
+            </select>
+        </div>
+
+        <button class="btn btn-danger" onclick="resetDefaults()" style="margin-left: auto;">Reset Layouts</button>
     </div>
 
     <div id="dashboard" class="dashboard"></div>
@@ -200,7 +215,6 @@
     </div>
 
     <script>
-        // The default maps (Now with Cyan!)
         const defaultMaps = [
             { id: "Red", color: "#ff7675", data: "XOOXXO" + "OOOOOO" + "OXXOOX" },
             { id: "Yellow", color: "#ffeaa7", data: "XOOXOX" + "OOOOOO" + "OXXOXO" },
@@ -212,18 +226,13 @@
             { id: "Cyan", color: "#00cec9", data: "XOXOXO" + "OOOOOO" + "OXOXOX" }
         ];
 
-        // Load map list from LocalStorage, or fallback to defaults
         let mapList = JSON.parse(localStorage.getItem('chocoMaps')) || [...defaultMaps];
-
-        // Custom Grid State
         let customGridData = Array(18).fill('O');
 
-        // Link color picker to card border preview
         document.getElementById('customColor').addEventListener('input', function(e) {
             document.getElementById('customCardColor').style.borderLeftColor = e.target.value;
         });
 
-        // The physics simulator
         function simulate(gridArr, pStartRow, rStartRow) {
             let pRow = pStartRow; let rRow = rStartRow;
             let pDelay = 0; let rDelay = 0;
@@ -254,7 +263,7 @@
             return 0.0; 
         }
 
-        function analyze(mapData, target) {
+        function analyze(mapData, target, rivalStart) {
             let gridArr = mapData.split('');
             let outcomes = [];
             for(let p=0; p<3; p++) {
@@ -265,39 +274,55 @@
                 }
             }
 
-            // Calc Rush
-            let rushEVs = {0:0, 1:0, 2:0}; let count = {0:0, 1:0, 2:0};
-            outcomes.forEach(o => { rushEVs[o.pStart] += o.score; count[o.pStart]++; });
-            let bestRushEV = -1; let bestRushLane = -1;
-            for(let i=0; i<3; i++) {
-                rushEVs[i] /= count[i];
-                if(rushEVs[i] > bestRushEV) { bestRushEV = rushEVs[i]; bestRushLane = i; }
-            }
+            let html = '';
 
-            // Calc Wait
-            let waitTotalEV = 0; let waitAdvice = [];
-            for(let r=0; r<3; r++) {
+            if (rivalStart === -1) {
+                // DEFAULT MODE: I pick first
+                let rushEVs = {0:0, 1:0, 2:0}; let count = {0:0, 1:0, 2:0};
+                outcomes.forEach(o => { rushEVs[o.pStart] += o.score; count[o.pStart]++; });
+                let bestRushEV = -1; let bestRushLane = -1;
+                for(let i=0; i<3; i++) {
+                    rushEVs[i] /= count[i];
+                    if(rushEVs[i] > bestRushEV) { bestRushEV = rushEVs[i]; bestRushLane = i; }
+                }
+
+                let waitTotalEV = 0; let waitAdvice = [];
+                for(let r=0; r<3; r++) {
+                    let bestP = -1; let bestS = -1;
+                    outcomes.filter(o => o.rStart === r).forEach(o => {
+                        if(o.score > bestS) { bestS = o.score; bestP = o.pStart; }
+                    });
+                    waitTotalEV += (bestS / 3);
+                    let resultClass = bestS === 1.0 ? 'win' : (bestS === 0.5 ? 'tie' : 'lose');
+                    waitAdvice.push(`<div class="counter-item">Rival ${r+1} ➔ <b class="${resultClass}">${bestP+1}</b></div>`);
+                }
+
+                if (bestRushEV === 1.0) {
+                    html += `<div class="rush">🚨 RUSH ROW ${bestRushLane + 1}</div>`;
+                    html += `<div style="color:#aaa;">You will win 100% of the time.</div>`;
+                } else if (waitTotalEV > bestRushEV) {
+                    html += `<div class="wait">⏳ WAIT & COUNTER</div>`;
+                    html += `<div class="counter-table">${waitAdvice.join('')}</div>`;
+                } else {
+                    html += `<div class="rush-med">🤔 RUSH ROW ${bestRushLane + 1} (${Math.round(bestRushEV*100)}% Win)</div>`;
+                    html += `<div style="color:#aaa;">Highest immediate odds.</div>`;
+                }
+            } else {
+                // REACTIVE MODE: Rival picked first
                 let bestP = -1; let bestS = -1;
-                outcomes.filter(o => o.rStart === r).forEach(o => {
+                outcomes.filter(o => o.rStart === rivalStart).forEach(o => {
                     if(o.score > bestS) { bestS = o.score; bestP = o.pStart; }
                 });
-                waitTotalEV += (bestS / 3);
-                let resultClass = bestS === 1.0 ? 'win' : (bestS === 0.5 ? 'tie' : 'lose');
-                waitAdvice.push(`<div class="counter-item">Rival ${r+1} ➔ Pick <b class="${resultClass}">${bestP+1}</b></div>`);
+
+                let resultText = bestS === 1.0 ? 'WIN' : (bestS === 0.5 ? 'TIE (0.5 pts)' : 'LOSE');
+                let resultColor = bestS === 1.0 ? '#4caf50' : (bestS === 0.5 ? '#ffeb3b' : '#f44336');
+
+                html += `<div style="color: ${resultColor}; font-size: 22px; font-weight: bold; margin-bottom: 5px; text-shadow: 1px 1px 2px #000;">`;
+                html += `PICK ROW ${bestP + 1}`;
+                html += `</div>`;
+                html += `<div style="color:#aaa;">Result: <span style="color:${resultColor}; font-weight:bold;">${resultText}</span></div>`;
             }
 
-            // Build Output HTML
-            let html = '';
-            if (bestRushEV === 1.0) {
-                html += `<div class="rush">🚨 RUSH ROW ${bestRushLane + 1}</div>`;
-                html += `<div style="color:#aaa;">You will win 100% of the time.</div>`;
-            } else if (waitTotalEV > bestRushEV) {
-                html += `<div class="wait">⏳ WAIT & COUNTER</div>`;
-                html += `<div class="counter-table">${waitAdvice.join('')}</div>`;
-            } else {
-                html += `<div class="rush-med">🤔 RUSH ROW ${bestRushLane + 1} (${Math.round(bestRushEV*100)}% Win)</div>`;
-                html += `<div style="color:#aaa;">Highest immediate odds.</div>`;
-            }
             return html;
         }
 
@@ -307,7 +332,6 @@
             return html + '</div>';
         }
 
-        // --- Custom Builder Logic ---
         function renderCustomBuilder() {
             const container = document.getElementById('customGridElement');
             let html = '<div class="grid">';
@@ -318,7 +342,8 @@
             container.innerHTML = html;
             
             const target = parseInt(document.getElementById('targetGoal').value);
-            document.getElementById('customAdvice').innerHTML = analyze(customGridData.join(''), target);
+            const rivalStart = parseInt(document.getElementById('rivalStart').value);
+            document.getElementById('customAdvice').innerHTML = analyze(customGridData.join(''), target, rivalStart);
         }
 
         function toggleCustomCell(index) {
@@ -330,7 +355,6 @@
             const color = document.getElementById('customColor').value;
             const dataStr = customGridData.join('');
             
-            // Check if map already exists
             if (mapList.some(m => m.data === dataStr)) {
                 alert("This layout already exists in your list!");
                 return;
@@ -338,7 +362,7 @@
 
             mapList.push({ id: `Custom-${mapList.length + 1}`, color: color, data: dataStr });
             localStorage.setItem('chocoMaps', JSON.stringify(mapList));
-            updateAll(); // Refresh main dashboard
+            updateAll();
         }
 
         function resetDefaults() {
@@ -349,9 +373,9 @@
             }
         }
 
-        // --- Main Render ---
         function renderDashboard() {
             const target = parseInt(document.getElementById('targetGoal').value);
+            const rivalStart = parseInt(document.getElementById('rivalStart').value);
             const dashboard = document.getElementById('dashboard');
             dashboard.innerHTML = '';
 
@@ -365,7 +389,7 @@
                         ${createStaticGridHTML(map.data)}
                     </div>
                     <div class="advice-panel">
-                        ${analyze(map.data, target)}
+                        ${analyze(map.data, target, rivalStart)}
                     </div>
                 `;
                 dashboard.appendChild(card);
@@ -377,7 +401,6 @@
             renderCustomBuilder();
         }
 
-        // Init on load
         updateAll();
     </script>
 </body>
