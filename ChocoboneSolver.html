@@ -251,15 +251,19 @@
     </div>
 
     <script>
+        // Grouped together by their exact visual shapes
         const defaultMaps = [
+            // Path 1 Family
             { id: "Red", color: "#ff7675", data: "XOOXXO" + "OOOOOO" + "OXXOOX" },
-            { id: "Yellow", color: "#ffeaa7", data: "XOOXOX" + "OOOOOO" + "OXXOXO" },
-            { id: "Purple", color: "#a29bfe", data: "OXXOXO" + "OOOOOO" + "XOOXOX" },
             { id: "Green", color: "#55efc4", data: "OXXOOX" + "OOOOOO" + "XOOXXO" },
-            { id: "Blue", color: "#74b9ff", data: "XOXOOX" + "OOOOOO" + "OXOXXO" },
-            { id: "Orange", color: "#fab1a0", data: "OXOXXO" + "OOOOOO" + "XOXOOX" },
+            // Path 2 Family
             { id: "Grey", color: "#dfe6e9", data: "OXOXOX" + "OOOOOO" + "XOXOXO" },
-            { id: "Cyan", color: "#00cec9", data: "XOXOXO" + "OOOOOO" + "OXOXOX" }
+            { id: "Cyan", color: "#00cec9", data: "XOXOXO" + "OOOOOO" + "OXOXOX" },
+            // Path 3 Family
+            { id: "Blue", color: "#74b9ff", data: "XOXOOX" + "OOOOOO" + "OXOXXO" },     // Swapped!
+            { id: "Purple", color: "#a29bfe", data: "OXXOXO" + "OOOOOO" + "XOOXOX" },
+            { id: "Orange", color: "#fab1a0", data: "OXOXXO" + "OOOOOO" + "XOXOOX" },   // Swapped!
+            { id: "Yellow", color: "#ffeaa7", data: "XOOXOX" + "OOOOOO" + "OXXOXO" }
         ];
 
         let mapList = JSON.parse(localStorage.getItem('chocoMaps')) || [...defaultMaps];
