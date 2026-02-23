@@ -18,6 +18,7 @@
             align-items: center; 
             padding: 20px; 
             margin: 0;
+            padding-bottom: 60px; /* Space for the bottom panel */
         }
         
         /* Title Header */
@@ -155,6 +156,57 @@
         .tie { color: #ffeb3b; }
         .lose { color: #f44336; }
 
+        /* Overall Stats Bottom Panel */
+        .overall-stats-container {
+            margin-top: 40px;
+            width: 100%;
+            max-width: 800px;
+            background: #1a1a24;
+            border: 4px solid #ffeb3b;
+            padding: 20px;
+            box-sizing: border-box;
+            box-shadow: 6px 6px 0px rgba(0,0,0,0.6);
+        }
+        .overall-stats-container h2 {
+            font-family: 'Press Start 2P', cursive;
+            margin-top: 0;
+            color: #ffeb3b;
+            font-size: 16px;
+            text-align: center;
+            text-shadow: 2px 2px 0px #000;
+            margin-bottom: 20px;
+        }
+        .stats-grid {
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+        }
+        .stat-box {
+            background: #2b2b36;
+            flex: 1;
+            padding: 15px;
+            border: 4px solid #333;
+            text-align: center;
+        }
+        .stat-title {
+            font-family: 'Press Start 2P', cursive;
+            font-size: 12px;
+            margin-bottom: 10px;
+            color: #fff;
+        }
+        .yolo-title { color: #ff7675; }
+        .counter-title { color: #74b9ff; }
+        .stat-value {
+            font-size: 32px;
+            color: #4caf50;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .stat-desc {
+            color: #aaa;
+            font-size: 20px;
+        }
+
         /* Custom Builder Section */
         .custom-builder-container {
             margin-top: 40px;
@@ -168,6 +220,7 @@
             background: #22222b;
             padding: 20px;
             box-sizing: border-box;
+            margin-bottom: 40px;
         }
         .custom-builder-container h2 { font-family: 'Press Start 2P', cursive; margin-top: 0; color: #81ecec; font-size: 16px; text-shadow: 2px 2px 0px #000; }
         .builder-controls {
@@ -235,6 +288,22 @@
 
     <div id="dashboard" class="dashboard"></div>
 
+    <div class="overall-stats-container">
+        <h2>OVERALL PANIC STATS (NO TIME TO CHECK)</h2>
+        <div class="stats-grid">
+            <div class="stat-box" style="border-color: #ff7675;">
+                <div class="stat-title yolo-title">YOLO ROUTE</div>
+                <div class="stat-value" id="yoloVal">--</div>
+                <div class="stat-desc" id="yoloDesc">--</div>
+            </div>
+            <div class="stat-box" style="border-color: #74b9ff;">
+                <div class="stat-title counter-title">COUNTER ROUTE</div>
+                <div class="stat-value" id="counterVal">--</div>
+                <div class="stat-desc" id="counterDesc">Chance to NOT lose if you blindly wait.</div>
+            </div>
+        </div>
+    </div>
+
     <div class="custom-builder-container">
         <h2>BUILD CUSTOM LAYOUT</h2>
         <p style="color: #aaa; margin-top: 0; font-size: 20px;">Click the grid squares to toggle 🌿 and X. Solution is automatic.</p>
@@ -260,9 +329,9 @@
             { id: "Grey", color: "#dfe6e9", data: "OXOXOX" + "OOOOOO" + "XOXOXO" },
             { id: "Cyan", color: "#00cec9", data: "XOXOXO" + "OOOOOO" + "OXOXOX" },
             // Path 3 Family
-            { id: "Blue", color: "#74b9ff", data: "XOXOOX" + "OOOOOO" + "OXOXXO" },     // Swapped!
+            { id: "Blue", color: "#74b9ff", data: "XOXOOX" + "OOOOOO" + "OXOXXO" },
             { id: "Purple", color: "#a29bfe", data: "OXXOXO" + "OOOOOO" + "XOOXOX" },
-            { id: "Orange", color: "#fab1a0", data: "OXOXXO" + "OOOOOO" + "XOXOOX" },   // Swapped!
+            { id: "Orange", color: "#fab1a0", data: "OXOXXO" + "OOOOOO" + "XOXOOX" },
             { id: "Yellow", color: "#ffeaa7", data: "XOOXOX" + "OOOOOO" + "OXXOXO" }
         ];
 
@@ -410,16 +479,14 @@
         }
 
         function resetDefaults() {
-            if (confirm("Are you sure you want to delete all your custom layouts and return to the default 8?")) {
+            if (confirm("Are you sure you want to delete all your custom layouts and return to the defaults?")) {
                 localStorage.removeItem('chocoMaps');
                 mapList = [...defaultMaps];
                 updateAll();
             }
         }
 
-        function renderDashboard() {
-            const target = parseInt(document.getElementById('targetGoal').value);
-            const rivalStart = parseInt(document.getElementById('rivalStart').value);
+        function renderDashboard(target, rivalStart) {
             const dashboard = document.getElementById('dashboard');
             dashboard.innerHTML = '';
 
@@ -440,9 +507,67 @@
             });
         }
 
+        function calculateOverallStats(target) {
+            let yoloCounts = {0: 0, 1: 0, 2: 0};
+            let totalYoloScenarios = mapList.length * 2; // Each map has 2 possible rival choices if we rush
+
+            let counterSuccesses = 0;
+            let totalCounterScenarios = mapList.length * 3; // Rival picks first (3 choices) across all maps
+
+            mapList.forEach(map => {
+                let gridArr = map.data.split('');
+                
+                // YOLO Logic (We pick p, rival picks random from other 2)
+                for(let p=0; p<3; p++) {
+                    for(let r=0; r<3; r++) {
+                        if (p === r) continue;
+                        let res = simulate(gridArr, p, r);
+                        let score = getScore(res.pEnd, res.rEnd, target);
+                        if (score > 0) yoloCounts[p]++; // Count Win or Tie
+                    }
+                }
+
+                // COUNTER Logic (Rival picks r, we perfectly pick best p)
+                for(let r=0; r<3; r++) {
+                    let bestScore = -1;
+                    for(let p=0; p<3; p++) {
+                        if (p === r) continue;
+                        let res = simulate(gridArr, p, r);
+                        let score = getScore(res.pEnd, res.rEnd, target);
+                        if (score > bestScore) bestScore = score;
+                    }
+                    if (bestScore > 0) counterSuccesses++; // Count Win or Tie
+                }
+            });
+
+            // Find best YOLO row
+            let bestYoloRow = 0;
+            let bestYoloCount = -1;
+            for(let p=0; p<3; p++) {
+                if (yoloCounts[p] > bestYoloCount) {
+                    bestYoloCount = yoloCounts[p];
+                    bestYoloRow = p;
+                }
+            }
+            
+            let yoloPercent = Math.round((bestYoloCount / totalYoloScenarios) * 100);
+            let counterPercent = Math.round((counterSuccesses / totalCounterScenarios) * 100);
+
+            // Update DOM
+            document.getElementById('yoloVal').innerText = yoloPercent + "%";
+            document.getElementById('yoloDesc').innerHTML = `Chance of NOT losing if you blindly <strong style="color:#fff;">RUSH ROW ${bestYoloRow + 1}</strong>`;
+            
+            document.getElementById('counterVal').innerText = counterPercent + "%";
+            // No row description for counter, as the row changes based on what the rival picks
+        }
+
         function updateAll() {
-            renderDashboard();
+            const target = parseInt(document.getElementById('targetGoal').value);
+            const rivalStart = parseInt(document.getElementById('rivalStart').value);
+            
+            renderDashboard(target, rivalStart);
             renderCustomBuilder();
+            calculateOverallStats(target);
         }
 
         updateAll();
